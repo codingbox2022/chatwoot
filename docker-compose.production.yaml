@@ -1,6 +1,6 @@
 version: "3.8"
 
-# Extensión base con imagen, env_file, variables comunes, volúmenes y red externa Dokploy
+# Extensión base con imagen, env_file, volúmenes y red externa Dokploy
 x-base-config: &base-config
   image: chatwoot/chatwoot:latest
   env_file:
@@ -15,7 +15,7 @@ x-base-config: &base-config
     - dokploy-network
 
 services:
-  # Servicio Web (Rails)
+  # Servicio Rails: aplica migraciones antes de arrancar
   rails:
     <<: *base-config
     depends_on:
@@ -23,32 +23,21 @@ services:
       - redis
     expose:
       - "3000"
-    environment:
-      NODE_ENV: production
-      RAILS_ENV: production
-      INSTALLATION_ENV: docker
     entrypoint: docker/entrypoints/rails.sh
     command:
       - bundle
       - exec
-      - rails
-      - s
-      - -p
-      - "3000"
-      - -b
-      - "0.0.0.0"
+      - sh
+      - -c
+      - rails db:chatwoot_prepare && rails s -p 3000 -b 0.0.0.0
     restart: always
 
-  # Worker (Sidekiq)
+  # Trabajadores Sidekiq
   sidekiq:
     <<: *base-config
     depends_on:
       - postgres
       - redis
-    environment:
-      NODE_ENV: production
-      RAILS_ENV: production
-      INSTALLATION_ENV: docker
     entrypoint: docker/entrypoints/rails.sh
     command:
       - bundle
@@ -58,7 +47,7 @@ services:
       - config/sidekiq.yml
     restart: always
 
-  # Base de datos Postgres con pgvector y alias resolvible como "chatwoot-postgres"
+  # PostgreSQL con pgvector y alias para Chatwoot
   postgres:
     image: pgvector/pgvector:pg16
     restart: always
@@ -76,7 +65,7 @@ services:
         aliases:
           - chatwoot-postgres
 
-  # Redis con contraseña, alias "chatwoot-redis"
+  # Redis con contraseña y alias para Chatwoot
   redis:
     image: redis:alpine
     restart: always
