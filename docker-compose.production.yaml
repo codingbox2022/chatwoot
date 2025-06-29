@@ -1,12 +1,13 @@
-version: '3'
+version: '3.8'
+
+# Definimos la plantilla de configuración fuera de "services"
+x-base-config: &base-config
+  image: chatwoot/chatwoot:latest
+  env_file: .env    # Cambia aquí tus variables
+  volumes:
+    - storage_data:/app/storage
 
 services:
-  x-base-config: &base-config
-    image: chatwoot/chatwoot:latest
-    env_file: .env ## Change this file for customized env variables
-    volumes:
-      - storage_data:/app/storage
-
   rails:
     <<: *base-config
     depends_on:
