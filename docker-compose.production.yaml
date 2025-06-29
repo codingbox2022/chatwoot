@@ -1,14 +1,14 @@
 version: '3'
 
 services:
-  base: &base
+  x-base-config: &base-config
     image: chatwoot/chatwoot:latest
     env_file: .env ## Change this file for customized env variables
     volumes:
       - storage_data:/app/storage
 
   rails:
-    <<: *base
+    <<: *base-config
     depends_on:
       - postgres
       - redis
@@ -23,7 +23,7 @@ services:
     restart: always
 
   sidekiq:
-    <<: *base
+    <<: *base-config
     depends_on:
       - postgres
       - redis
