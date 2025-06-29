@@ -1,17 +1,21 @@
 version: "3.8"
 
-# Extensión base: imagen, .env, volúmenes y red
+# Extensión base con imagen, env_file, variables comunes, volúmenes y red externa Dokploy
 x-base-config: &base-config
   image: chatwoot/chatwoot:latest
   env_file:
     - .env
+  environment:
+    POSTGRES_HOST: chatwoot-postgres
+    POSTGRES_PORT: 5432
+    REDIS_URL: redis://:${REDIS_PASSWORD}@chatwoot-redis:6379/0
   volumes:
     - storage_data:/app/storage
   networks:
     - dokploy-network
 
 services:
-  # Servicio web Rails
+  # Servicio Web (Rails)
   rails:
     <<: *base-config
     depends_on:
@@ -19,6 +23,10 @@ services:
       - redis
     expose:
       - "3000"
+    environment:
+      NODE_ENV: production
+      RAILS_ENV: production
+      INSTALLATION_ENV: docker
     entrypoint: docker/entrypoints/rails.sh
     command:
       - bundle
@@ -31,12 +39,16 @@ services:
       - "0.0.0.0"
     restart: always
 
-  # Trabajadores Sidekiq
+  # Worker (Sidekiq)
   sidekiq:
     <<: *base-config
     depends_on:
       - postgres
       - redis
+    environment:
+      NODE_ENV: production
+      RAILS_ENV: production
+      INSTALLATION_ENV: docker
     entrypoint: docker/entrypoints/rails.sh
     command:
       - bundle
@@ -46,14 +58,14 @@ services:
       - config/sidekiq.yml
     restart: always
 
-  # Base de datos PostgreSQL con pgvector y alias
+  # Base de datos Postgres con pgvector y alias resolvible como "chatwoot-postgres"
   postgres:
     image: pgvector/pgvector:pg16
     restart: always
     environment:
-      POSTGRES_DB:      "${POSTGRES_DATABASE}"
-      POSTGRES_USER:    "${POSTGRES_USERNAME}"
-      POSTGRES_PASSWORD:"${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DATABASE}"
+      POSTGRES_USER: "${POSTGRES_USERNAME}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -64,7 +76,7 @@ services:
         aliases:
           - chatwoot-postgres
 
-  # Redis con contraseña y alias
+  # Redis con contraseña, alias "chatwoot-redis"
   redis:
     image: redis:alpine
     restart: always
