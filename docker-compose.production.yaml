@@ -1,9 +1,9 @@
 version: '3.8'
 
-# Definimos la plantilla de configuración fuera de "services"
+# plantilla base (no es un servicio activo)
 x-base-config: &base-config
   image: chatwoot/chatwoot:latest
-  env_file: .env    # Cambia aquí tus variables
+  env_file: .env
   volumes:
     - storage_data:/app/storage
 
@@ -19,8 +19,10 @@ services:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
+      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${DATABASE_URL}
     entrypoint: docker/entrypoints/rails.sh
-    command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
+    command: ['bundle','exec','rails','s','-p','3000','-b','0.0.0.0']
     restart: always
 
   sidekiq:
@@ -32,7 +34,9 @@ services:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
-    command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
+      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${DATABASE_URL}
+    command: ['bundle','exec','sidekiq','-C','config/sidekiq.yml']
     restart: always
 
   postgres:
@@ -50,7 +54,10 @@ services:
   redis:
     image: redis:alpine
     restart: always
-    command: ["sh", "-c", "redis-server --requirepass \"$REDIS_PASSWORD\""]
+    # Opción A: sin contraseña
+    command: ["redis-server"]
+    # Opción B: con contraseña
+    # command: ["sh","-c","redis-server --requirepass \"$REDIS_PASSWORD\""]
     env_file: .env
     volumes:
       - redis_data:/data
