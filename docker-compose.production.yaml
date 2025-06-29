@@ -18,7 +18,7 @@ services:
       - postgres
       - redis
     expose:
-      - "3000"                      # expone solo el puerto interno
+      - "3000"
     environment:
       NODE_ENV: production
       RAILS_ENV: production
@@ -40,7 +40,7 @@ services:
     command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
     restart: always
 
-  # Base de datos PostgreSQL con pgvector
+  # Base de datos PostgreSQL con pgvector y alias chatwoot-postgres
   postgres:
     image: pgvector/pgvector:pg16
     restart: always
@@ -51,7 +51,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - dokploy-network
+      dokploy-network:
+        aliases:
+          - chatwoot-postgres
 
   # Redis con contraseña
   redis:
